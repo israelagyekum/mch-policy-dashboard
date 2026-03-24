@@ -8,6 +8,12 @@ from sklearn.inspection import PartialDependenceDisplay
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
+import os
+import joblib
+import streamlit as st
+import pandas as pd
+
+from models.train_model import train_model
 # ==========================================================
 # PAGE CONFIG (ONLY ONCE)
 # ==========================================================
@@ -32,9 +38,16 @@ DARK_BG = "#0B1F3A"
 def load_data():
     return pd.read_csv("data/processed/mch_panel_data.csv")
 
+MODEL_PATH = "models/maternal_model.pkl"
+
 @st.cache_resource
 def load_model():
-    return joblib.load("models/maternal_model.pkl")
+    if not os.path.exists(MODEL_PATH):
+        st.warning("Model not found. Training model... please wait ⏳")
+        with st.spinner("Training model..."):
+            train_model()
+
+    return joblib.load(MODEL_PATH)
 
 df = load_data().dropna()
 model_data = load_model()
