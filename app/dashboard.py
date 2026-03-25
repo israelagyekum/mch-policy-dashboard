@@ -13,9 +13,7 @@ import matplotlib.pyplot as plt
 from sklearn.inspection import PartialDependenceDisplay
 import numpy as np
 import matplotlib
-
 matplotlib.use("Agg")
-
 from models.train_model import train_model
 # ==========================================================
 # PAGE CONFIG (ONLY ONCE)
