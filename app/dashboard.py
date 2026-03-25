@@ -1,3 +1,4 @@
+```python
 import os
 import sys
 
@@ -17,8 +18,9 @@ import matplotlib
 matplotlib.use("Agg")
 
 from models.train_model import train_model
+
 # ==========================================================
-# PAGE CONFIG (ONLY ONCE)
+# PAGE CONFIG
 # ==========================================================
 st.set_page_config(
     page_title="MCH Policy Dashboard",
@@ -26,20 +28,19 @@ st.set_page_config(
 )
 
 # ==========================================================
-# COLOR SYSTEM (LIKE YOUR REFERENCE DASHBOARD)
+# COLORS
 # ==========================================================
 BLUE = "#1f77b4"
 ORANGE = "#ff7f0e"
 GREEN = "#2ca02c"
-RED = "#d62728"
-DARK_BG = "#0B1F3A"
 
 # ==========================================================
-# LOAD DATA + MODEL (CACHED)
+# LOAD DATA + MODEL
 # ==========================================================
 @st.cache_data
 def load_data():
     return pd.read_csv("data/processed/mch_panel_data.csv")
+
 
 MODEL_PATH = "models/maternal_model.pkl"
 
@@ -52,25 +53,18 @@ def load_model():
 
     return joblib.load(MODEL_PATH)
 
+
 df = load_data().dropna()
-rf_model = model_data["rf_model"]
 
-
-# ==========================================================
-# EXTRACT MODELS (FIXED STRUCTURE)
-# ==========================================================
-global_model = model_data["panel_model"]
-
-global_r2 = model_data["panel_metrics"]["r2"]
-global_rmse = model_data["panel_metrics"]["rmse"]
-global_mae = model_data["panel_metrics"]["mae"]
+model_data = load_model()
 
 rf_model = model_data["rf_model"]
+gb_model = model_data["gb_model"]
+
 rf_r2 = model_data["rf_metrics"]["r2"]
 rf_rmse = model_data["rf_metrics"]["rmse"]
 rf_mae = model_data["rf_metrics"]["mae"]
 
-gb_model = model_data["gb_model"]
 gb_r2 = model_data["gb_metrics"]["r2"]
 gb_rmse = model_data["gb_metrics"]["rmse"]
 gb_mae = model_data["gb_metrics"]["mae"]
@@ -85,25 +79,9 @@ policy_vars = [
 # ==========================================================
 # HEADER
 # ==========================================================
-st.markdown("# 📊 Maternal & Child Health Dashboard")
-st.markdown("### Policy Intelligence — Analytical View")
+st.title("📊 Maternal & Child Health Dashboard")
+st.subheader("Policy Intelligence — Analytical View")
 st.markdown("---")
-
-st.markdown("""
-### 📘 How to Interpret This Dashboard
-
-This platform provides decision-support insights for maternal health policy.
-
-**Key Components:**
-- **Key Indicators:** Current country-level metrics
-- **Policy Scenario:** Simulate policy changes and observe impact
-- **Policy Impact:** Estimated change in maternal mortality
-- **Model Performance:** Accuracy of econometric vs machine learning models
-- **Structural Effects:** Long-run relationships from panel regression
-- **AI Interpretability:** Feature importance using SHAP
-
-⚠️ Results are analytical estimates and should support—not replace—policy decisions.
-""")
 
 # ==========================================================
 # SIDEBAR
@@ -117,14 +95,12 @@ filtered_df = df[df["country"] == country]
 latest_data = filtered_df[filtered_df["year"] == year]
 
 if latest_data.empty:
-    st.markdown('<div class="custom-warning">⚠️ No data available for selected year. Showing closest available year.</div>', unsafe_allow_html=True)
-
-latest_data = filtered_df.sort_values("year").iloc[[-1]]
+    latest_data = filtered_df.sort_values("year").iloc[[-1]]
 
 row = latest_data.iloc[0]
 
 # ==========================================================
-# KPI ROW (LIKE YOUR IMAGE)
+# KPI
 # ==========================================================
 st.markdown("## Key Indicators")
 
@@ -154,36 +130,25 @@ shock_input = pd.DataFrame({
     "gdp_per_capita": [row["gdp_per_capita"] * (1 + gdp_shock/100)],
     "fertility_rate": [row["fertility_rate"] * (1 + fertility_shock/100)],
     "health_expenditure_per_capita": [row["health_expenditure_per_capita"] * (1 + health_shock/100)],
-    "female_secondary_enrollment": [row["female_secondary_enrollment"] * (1 + edu_shock/100)],
-    "country": [country],
-    "year": [year]
+    "female_secondary_enrollment": [row["female_secondary_enrollment"] * (1 + edu_shock/100)]
 })
-
-shock_input["country"] = shock_input["country"].astype("category")
-shock_input["year"] = shock_input["year"].astype("category")
 
 baseline_input = pd.DataFrame({
     "gdp_per_capita": [row["gdp_per_capita"]],
     "fertility_rate": [row["fertility_rate"]],
     "health_expenditure_per_capita": [row["health_expenditure_per_capita"]],
-    "female_secondary_enrollment": [row["female_secondary_enrollment"]],
-    "country": [country],
-    "year": [year]
+    "female_secondary_enrollment": [row["female_secondary_enrollment"]]
 })
 
-baseline_input["country"] = baseline_input["country"].astype("category")
-baseline_input["year"] = baseline_input["year"].astype("category")
-
-panel_prediction = global_model.predict(shock_input)[0]
-baseline_prediction = global_model.predict(baseline_input)[0]
+panel_prediction = rf_model.predict(shock_input)[0]
+baseline_prediction = rf_model.predict(baseline_input)[0]
 impact = baseline_prediction - panel_prediction
 
 # ==========================================================
-# MAIN DASHBOARD GRID (LIKE YOUR REFERENCE IMAGE)
+# VISUALS
 # ==========================================================
 colA, colB = st.columns(2)
 
-# ---- LEFT: TREND ----
 with colA:
     fig_trend = px.line(
         filtered_df,
@@ -194,7 +159,6 @@ with colA:
     )
     st.plotly_chart(fig_trend, use_container_width=True)
 
-# ---- RIGHT: POLICY IMPACT ----
 with colB:
     comparison_df = pd.DataFrame({
         "Scenario": ["Baseline", "Policy"],
@@ -215,52 +179,37 @@ with colB:
     st.plotly_chart(fig_policy, use_container_width=True)
 
 # ==========================================================
-# PERFORMANCE TABLE
+# PERFORMANCE
 # ==========================================================
 st.markdown("## Model Performance")
 
 performance_df = pd.DataFrame({
-    "Model": ["Panel", "Random Forest", "Gradient Boosting"],
-    "R²": [global_r2, rf_r2, gb_r2],
-    "RMSE": [global_rmse, rf_rmse, gb_rmse],
-    "MAE": [global_mae, rf_mae, gb_mae]
+    "Model": ["Random Forest", "Gradient Boosting"],
+    "R²": [rf_r2, gb_r2],
+    "RMSE": [rf_rmse, gb_rmse],
+    "MAE": [rf_mae, gb_mae]
 })
 
 st.dataframe(performance_df.round(3))
 
 # ==========================================================
-# STRUCTURAL EFFECTS
-# ==========================================================
-st.markdown("## Policy Drivers (Econometric Effects)")
-
-coef_df = pd.DataFrame({
-    "Variable": policy_vars,
-    "Coefficient": [global_model.params[v] for v in policy_vars]
-})
-
-fig_coef = px.bar(coef_df, x="Variable", y="Coefficient",
-                  color_discrete_sequence=[GREEN])
-
-st.plotly_chart(fig_coef, use_container_width=True)
-
-# ==========================================================
 # SHAP
 # ==========================================================
-st.markdown("## AI Explanation (What Drives Predictions)")
+st.markdown("## AI Explanation")
 
-ml_input = shock_input[policy_vars].apply(pd.to_numeric)
+ml_input = shock_input[policy_vars]
 
-rf_explainer = shap.TreeExplainer(rf_model)
-shap_vals = rf_explainer.shap_values(ml_input)
+explainer = shap.TreeExplainer(rf_model)
+shap_vals = explainer.shap_values(ml_input)
 
 fig, ax = plt.subplots()
 shap.bar_plot(shap_vals[0], feature_names=policy_vars)
 st.pyplot(fig)
 
 # ==========================================================
-# PDP (GLOBAL STRUCTURE)
+# PDP
 # ==========================================================
-st.markdown("## Global Nonlinear Effects")
+st.markdown("## Global Effects")
 
 X_global = df[policy_vars]
 
@@ -279,12 +228,5 @@ st.pyplot(fig_pdp)
 # FOOTER
 # ==========================================================
 st.markdown("---")
-st.caption("Institutional MCH Policy Intelligence Platform")
-
-st.markdown("""
----
-**Institutional Analytics Platform**  
-Maternal & Child Health Policy Intelligence System  
-Data Source: World Bank (2000–2022)
-""")
-st.caption("Models are trained on historical data and assume structural stability.")
+st.caption("Maternal & Child Health Policy Intelligence System")
+```
