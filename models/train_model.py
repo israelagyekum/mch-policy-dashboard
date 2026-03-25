@@ -1,6 +1,7 @@
 import pandas as pd
 import joblib
 import os
+ import numpy as np
 
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
@@ -29,8 +30,8 @@ def train_model():
     preds = panel_model.predict(X)
 
     # Metrics
-    r2 = r2_score(y, preds)
-    rmse = mean_squared_error(y, preds, squared=False)
+    r2 = r2_score(y, preds)   
+rmse = np.sqrt(mean_squared_error(y, preds))
     mae = mean_absolute_error(y, preds)
 
     # Ensure models folder exists
