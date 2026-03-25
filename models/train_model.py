@@ -1,50 +1,112 @@
 import pandas as pd
 import joblib
-import os
- import numpy as np
+import numpy as np
 
-from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+
+
+# ==========================================================
+# CONFIGURATION
+# ==========================================================
+
+DATA_PATH = "data/processed/mch_panel_data.csv"
+MODEL_PATH = "models/maternal_model.pkl"
+
+FEATURES = [
+    "gdp_per_capita",
+    "fertility_rate",
+    "health_expenditure_per_capita",
+    "female_secondary_enrollment"
+]
+
+TARGET = "maternal_mortality"
+
+
+# ==========================================================
+# LIGHTWEIGHT TRAINING FUNCTION (DEPLOYMENT SAFE)
+# ==========================================================
+
+def train_and_save_model():
+
+    df = pd.read_csv(DATA_PATH)
+    df = df.dropna(subset=FEATURES + [TARGET])
+
+    X = df[FEATURES]
+    y = df[TARGET]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # -----------------------------
+    # Random Forest (lighter)
+    # -----------------------------
+    rf_model = RandomForestRegressor(
+        n_estimators=100,
+        max_depth=6,
+        random_state=42
+    )
+
+    rf_model.fit(X_train, y_train)
+    rf_pred = rf_model.predict(X_test)
+
+    # -----------------------------
+    # Gradient Boosting (lighter)
+    # -----------------------------
+    gb_model = GradientBoostingRegressor(
+        n_estimators=100,
+        learning_rate=0.1,
+        max_depth=3,
+        random_state=42
+    )
+
+    gb_model.fit(X_train, y_train)
+    gb_pred = gb_model.predict(X_test)
+
+    # -----------------------------
+    # METRICS
+    # -----------------------------
+    model_output = {
+        "rf_model": rf_model,
+        "rf_metrics": {
+            "r2": r2_score(y_test, rf_pred),
+            "rmse": np.sqrt(mean_squared_error(y_test, rf_pred)),
+            "mae": mean_absolute_error(y_test, rf_pred)
+        },
+        "gb_model": gb_model,
+        "gb_metrics": {
+            "r2": r2_score(y_test, gb_pred),
+            "rmse": np.sqrt(mean_squared_error(y_test, gb_pred)),
+            "mae": mean_absolute_error(y_test, gb_pred)
+        }
+    }
+
+    joblib.dump(model_output, MODEL_PATH)
+
+    print("Model trained and saved successfully")
+
+    return model_output
+
+
+# ==========================================================
+# SAFE LOADER
+# ==========================================================
 
 def train_model():
-    # Load data
-    df = pd.read_csv("data/processed/mch_panel_data.csv").dropna()
 
-    X = df[["gdp_per_capita", "fertility_rate"]]
-    y = df["maternal_mortality"]
+    try:
+        return joblib.load(MODEL_PATH)
 
-    # -----------------------------
-    # MODELS (LIGHTWEIGHT)
-    # -----------------------------
-    panel_model = LinearRegression()
-    rf_model = RandomForestRegressor(n_estimators=10, random_state=42)
-    gb_model = GradientBoostingRegressor(n_estimators=10, random_state=42)
+    except:
+        print("Training model (lightweight)...")
+        return train_and_save_model()
 
-    # Train models
-    panel_model.fit(X, y)
-    rf_model.fit(X, y)
-    gb_model.fit(X, y)
 
-    # Predictions (use panel model for metrics)
-    preds = panel_model.predict(X)
+# ==========================================================
+# MANUAL RUN
+# ==========================================================
 
-    # Metrics
-    r2 = r2_score(y, preds)   
-rmse = np.sqrt(mean_squared_error(y, preds))
-    mae = mean_absolute_error(y, preds)
-
-    # Ensure models folder exists
-    os.makedirs("models", exist_ok=True)
-
-    # Save everything EXACTLY as dashboard expects
-    joblib.dump({
-        "panel_model": panel_model,
-        "rf_model": rf_model,
-        "gb_model": gb_model,
-        "panel_metrics": {
-            "r2": float(r2),
-            "rmse": float(rmse),
-            "mae": float(mae)
-        }
-    }, "models/maternal_model.pkl")
+if __name__ == "__main__":
+    train_and_save_model()

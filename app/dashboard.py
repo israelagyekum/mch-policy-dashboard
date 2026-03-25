@@ -53,7 +53,8 @@ def load_model():
     return joblib.load(MODEL_PATH)
 
 df = load_data().dropna()
-model_data = load_model()
+rf_model = model_data["rf_model"]
+
 
 # ==========================================================
 # EXTRACT MODELS (FIXED STRUCTURE)
