@@ -44,7 +44,7 @@ def train_and_save_model():
     # Random Forest (lighter)
     # -----------------------------
     rf_model = RandomForestRegressor(
-        n_estimators=100,
+        n_estimators=50,
         max_depth=6,
         random_state=42
     )
@@ -56,7 +56,7 @@ def train_and_save_model():
     # Gradient Boosting (lighter)
     # -----------------------------
     gb_model = GradientBoostingRegressor(
-        n_estimators=100,
+        n_estimators=50,
         learning_rate=0.1,
         max_depth=3,
         random_state=42
