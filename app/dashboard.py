@@ -1,8 +1,8 @@
-import sys
 import os
+import sys
 
 # Fix import path for Streamlit Cloud
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import streamlit as st
 import pandas as pd
@@ -13,7 +13,9 @@ import matplotlib.pyplot as plt
 from sklearn.inspection import PartialDependenceDisplay
 import numpy as np
 import matplotlib
+
 matplotlib.use("Agg")
+
 from models.train_model import train_model
 # ==========================================================
 # PAGE CONFIG (ONLY ONCE)
